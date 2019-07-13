@@ -1,0 +1,36 @@
+Setup MySQL Slave using xtrabackup
+Install depenencies
+$ yum install -y pigz nc
+Install xtrabackup (both)
+$ yum install https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+
+$ yum install percona-xtrabackup-24
+
+Run on Slave (slave only)
+$ nc -l -p 2345 | unpigz -c | xbstream -xv -C /var/lib/mysql
+
+Run on Master (master only)
+$ innobackupex --stream=xbstream --parallel=4 --tmpdir=/tmp /tmp | pigz -c --fast | nc TARGET_SERVER 2345
+
+TARGET_SERVER: IP Slave's server
+Steps on Slave's server when successfully synced
+Apply log
+$ innobackupex --use-memory=4G --apply-log --tmpdir=/tmp /var/lib/mysql
+
+Change ownership and start MySQL
+$ chown -R mysql:mysql /var/lib/mysql
+
+$ service mysql start
+
+Configure replication
+$ cat /var/lib/mysql/xtrabackup_binlog_info
+
+CHANGE MASTER TO MASTER_HOST='MASTER_SERVER', 
+MASTER_USER='REPL_USER', 
+MASTER_PASSWORD='REPL_PASS', 
+MASTER_LOG_FILE='LOG_FROM_xtrabackup_binlog_info',
+MASTER_LOG_POS=POSITION_FROM_xtrabackup_binlog_info;
+START SLAVE;"
+
+Reference: https://blog.pythian.com/mysql-streaming-xtrabackup-slave-recovery/
+
