@@ -40,16 +40,14 @@ fi
 
 warn=$2
 crit=$4
-user=$(sed -n "2p" /root/.my.cnf|cut -d"=" -f2)
-pass=$(sed -n "3p" /root/.my.cnf|cut -d"=" -f2)
 
-mysql -u $user -p$pass -e 'select count(id) from information_schema.processlist;' > /dev/null 2>&1
+mysql --defaults-file=/root/.my.cnf -e 'select count(id) from information_schema.processlist;' > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "Critical, too many connections on mysql."
     exit 2
 fi
 
-current=$(mysql -u $user -p$pass -e 'select count(id) from information_schema.processlist;'| grep [0-9])
+current=$(mysql --defaults-file=/root/.my.cnf -e 'select count(id) from information_schema.processlist;'| grep [0-9])
 if [ $current -ge $crit ]; then
     echo "Critical! Current connections on mysql: $current"
     exit 2
